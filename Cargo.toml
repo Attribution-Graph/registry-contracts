@@ -1,0 +1,25 @@
+[workspace]
+members = ["contracts/registry"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = false
+strip = "symbols"
+lto = true
+codegen-units = 1
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true
+
+[patch.crates-io]
+ethnum = { path = "vendor/ethnum-1.5.3" }
+
+
