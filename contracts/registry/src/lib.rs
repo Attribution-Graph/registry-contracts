@@ -48,13 +48,19 @@ impl RegistryContract {
             panic!("already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::AttestationCounter, &0u64);
+        env.storage()
+            .instance()
+            .set(&DataKey::AttestationCounter, &0u64);
     }
 
     // Issue 3: attest() function
     pub fn attest(env: Env, contributor: Address, repo_url: String) -> u64 {
         contributor.require_auth();
-        let counter: u64 = env.storage().instance().get(&DataKey::AttestationCounter).unwrap_or(0);
+        let counter: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::AttestationCounter)
+            .unwrap_or(0);
         let id = counter + 1;
         let attestation = Attestation {
             id,
@@ -64,44 +70,68 @@ impl RegistryContract {
             revoked: false,
             revocation_timestamp: 0,
         };
-        env.storage().persistent().set(&DataKey::Attestation(id), &attestation);
-        env.storage().instance().set(&DataKey::AttestationCounter, &id);
-        
-        let mut ids: Vec<u64> = env.storage().persistent()
+        env.storage()
+            .persistent()
+            .set(&DataKey::Attestation(id), &attestation);
+        env.storage()
+            .instance()
+            .set(&DataKey::AttestationCounter, &id);
+
+        let mut ids: Vec<u64> = env
+            .storage()
+            .persistent()
             .get(&DataKey::ContributorAttestations(contributor.clone()))
             .unwrap_or(Vec::new(&env));
         ids.push_back(id);
-        env.storage().persistent().set(&DataKey::ContributorAttestations(contributor), &ids);
-        
-        env.events().publish((Symbol::new(&env, "attest"),), (id, repo_url));
+        env.storage()
+            .persistent()
+            .set(&DataKey::ContributorAttestations(contributor), &ids);
+
+        env.events()
+            .publish((Symbol::new(&env, "attest"),), (id, repo_url));
         id
     }
 
-    // Issue 4: revoke() function  
+    // Issue 4: revoke() function
     pub fn revoke(env: Env, caller: Address, attestation_id: u64) {
         caller.require_auth();
-        let mut attestation: Attestation = env.storage().persistent()
+        let mut attestation: Attestation = env
+            .storage()
+            .persistent()
             .get(&DataKey::Attestation(attestation_id))
             .expect("attestation not found");
         if attestation.contributor != caller {
-            let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("no admin");
-            if caller != admin { panic!("unauthorized"); }
+            let admin: Address = env
+                .storage()
+                .instance()
+                .get(&DataKey::Admin)
+                .expect("no admin");
+            if caller != admin {
+                panic!("unauthorized");
+            }
         }
         attestation.revoked = true;
         attestation.revocation_timestamp = env.ledger().timestamp();
-        env.storage().persistent().set(&DataKey::Attestation(attestation_id), &attestation);
-        env.events().publish((Symbol::new(&env, "revoke"),), (attestation_id,));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Attestation(attestation_id), &attestation);
+        env.events()
+            .publish((Symbol::new(&env, "revoke"),), (attestation_id,));
     }
 
     // Issue 5: get_attestation() query function
     pub fn get_attestation(env: Env, attestation_id: u64) -> Attestation {
-        env.storage().persistent().get(&DataKey::Attestation(attestation_id))
+        env.storage()
+            .persistent()
+            .get(&DataKey::Attestation(attestation_id))
             .expect("attestation not found")
     }
 
     // Issue 6: list_attestations() for contributor
     pub fn list_attestations(env: Env, contributor: Address) -> Vec<u64> {
-        env.storage().persistent().get(&DataKey::ContributorAttestations(contributor))
+        env.storage()
+            .persistent()
+            .get(&DataKey::ContributorAttestations(contributor))
             .unwrap_or(Vec::new(&env))
     }
 
@@ -113,17 +143,25 @@ impl RegistryContract {
             owner: owner.clone(),
             bound_at: env.ledger().timestamp(),
         };
-        env.storage().persistent().set(&DataKey::RepoBinding(repo_url.clone()), &binding);
-        env.events().publish((Symbol::new(&env, "bind_repo"),), (owner, repo_url));
+        env.storage()
+            .persistent()
+            .set(&DataKey::RepoBinding(repo_url.clone()), &binding);
+        env.events()
+            .publish((Symbol::new(&env, "bind_repo"),), (owner, repo_url));
     }
 
     pub fn get_binding(env: Env, repo_url: String) -> RepoBinding {
-        env.storage().persistent().get(&DataKey::RepoBinding(repo_url))
+        env.storage()
+            .persistent()
+            .get(&DataKey::RepoBinding(repo_url))
             .expect("binding not found")
     }
 
     pub fn get_admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).expect("no admin")
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("no admin")
     }
 }
 
